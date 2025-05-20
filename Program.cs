@@ -186,4 +186,19 @@ app.MapGet("/api/cities/{cityId}/logs", (TravelLoggerDbContext db, int cityId) =
     );
 });
 
+app.MapDelete("/api/logs/{Id}", (TravelLoggerDbContext db, int Id) =>
+{
+    Log log = db.Logs.SingleOrDefault(l => l.Id == Id);
+
+    if (log == null)
+    {
+        return Results.NotFound();
+    }
+
+    db.Logs.Remove(log);
+    db.SaveChanges();
+
+    return Results.NoContent();
+});
+
 app.Run();
