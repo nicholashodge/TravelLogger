@@ -201,4 +201,28 @@ app.MapDelete("/api/logs/{Id}", (TravelLoggerDbContext db, int Id) =>
     return Results.NoContent();
 });
 
+app.MapGet("/api/cities",(TravelLoggerDbContext db) =>
+{
+    return db.Cities.Select(c => new CityDTO
+    {
+        Id = c.Id,
+        Name = c.Name
+    }).ToList();
+});
+
+app.MapGet("api/cities/{id}",(int id, TravelLoggerDbContext db)=>
+{
+    bool exists = db.Cities.Any(c => c.Id == id);
+    if (!exists)
+    {
+        return Results.NotFound();
+    }
+    var city = db.Cities.Select(c => new CityDTO
+    {
+        Id = c.Id,
+        Name = c.Name
+    }).Single(c => c.Id == id);
+    return Results.Ok(city);
+});
+
 app.Run();
