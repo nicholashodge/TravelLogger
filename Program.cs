@@ -2,6 +2,8 @@ using Microsoft.EntityFrameworkCore;
 using System.Text.Json.Serialization;
 using Microsoft.AspNetCore.Http.Json;
 
+//using TravelLogger.Models
+
 var builder = WebApplication.CreateBuilder(args);
 
 // Add services to the container.
