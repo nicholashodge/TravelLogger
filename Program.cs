@@ -1,6 +1,8 @@
 using Microsoft.EntityFrameworkCore;
 using System.Text.Json.Serialization;
 using Microsoft.AspNetCore.Http.Json;
+using TravelLogger.Models.DTOs;
+using TravelLogger.Models;
 
 //using TravelLogger.Models
 
@@ -35,5 +37,168 @@ app.UseCors(options =>
 });
 
 // Add all endpoints here
+
+app.MapPost("/api/logs", (TravelLoggerDbContext db, LogDTO newLogDTO) =>
+{
+    try
+    {
+        Log newLog = new Log
+        {
+            Id = newLogDTO.Id,
+            UserId = newLogDTO.UserId,
+            CityId = newLogDTO.CityId,
+            LoggedTime = DateTime.Now
+        };
+
+        db.Logs.Add(newLog);
+        db.SaveChanges();
+
+        Log DTOInfo = db.Logs.Include(l => l.User).Include(l => l.City).SingleOrDefault(l => l.Id == newLog.Id);
+
+        return Results.Created($"/api/logs/{newLog.Id}", new LogDTO
+        {
+            Id = DTOInfo.Id,
+            UserId = DTOInfo.UserId,
+            CityId = DTOInfo.CityId,
+            LoggedTime = DTOInfo.LoggedTime,
+            User = DTOInfo.User != null ? new UserDTO
+            {
+                Id = DTOInfo.User.Id,
+                Name = DTOInfo.User.Name,
+                Email = DTOInfo.User.Email
+            } : null,
+            City = DTOInfo.City != null ? new CityDTO
+            {
+                Id = DTOInfo.City.Id,
+                Name = DTOInfo.City.Name,
+            } : null
+        });
+    }
+    catch (DbUpdateException)
+    {
+        return Results.BadRequest("Invalid Data");
+    }
+});
+
+app.MapPut("/api/logs/{Id}", (TravelLoggerDbContext db, LogDTO newLogDTO, int Id) =>
+{
+    try
+    {
+        Log oldLog = db.Logs.SingleOrDefault(l => l.Id == Id);
+
+        if (oldLog == null)
+        {
+            return Results.NotFound();
+        }
+
+        oldLog.UserId = newLogDTO.UserId;
+        oldLog.CityId = newLogDTO.CityId;
+        oldLog.LoggedTime = newLogDTO.LoggedTime;
+
+        db.SaveChanges();
+
+        Log DTOInfo = db.Logs.Include(l => l.User).Include(l => l.City).SingleOrDefault(l => l.Id == Id);
+
+        return Results.Ok(new LogDTO
+        {
+            Id = DTOInfo.Id,
+            UserId = DTOInfo.UserId,
+            CityId = DTOInfo.CityId,
+            LoggedTime = DTOInfo.LoggedTime,
+            User = DTOInfo.User != null ? new UserDTO
+            {
+                Id = DTOInfo.User.Id,
+                Name = DTOInfo.User.Name,
+                Email = DTOInfo.User.Email
+            } : null,
+            City = DTOInfo.City != null ? new CityDTO
+            {
+                Id = DTOInfo.City.Id,
+                Name = DTOInfo.City.Name,
+            } : null
+        });
+    }
+    catch (DbUpdateException)
+    {
+        return Results.BadRequest("Invalid Data");
+    }
+});
+
+app.MapGet("/api/users/{userId}/logs", (TravelLoggerDbContext db, int userId) =>
+{
+    User user = db.Users.Include(u => u.Logs).ThenInclude(u => u.City).SingleOrDefault(u => u.Id == userId);
+
+    if (user == null)
+    {
+        return Results.NotFound();
+    }
+
+    return Results.Ok(
+        new UserDTO
+        {
+            Id = user.Id,
+            Name = user.Name,
+            Email = user.Email,
+            Logs = user.Logs.Select(log => new LogDTO
+            {
+                Id = log.Id,
+                UserId = log.UserId,
+                CityId = log.CityId,
+                LoggedTime = log.LoggedTime,
+                City = log.City != null ? new CityDTO
+                {
+                    Id = log.City.Id,
+                    Name = log.City.Name
+                } : null
+            }).ToList()
+        }
+    );
+});
+
+app.MapGet("/api/cities/{cityId}/logs", (TravelLoggerDbContext db, int cityId) =>
+{
+    City city = db.Cities.Include(c => c.Logs).ThenInclude(c => c.User).SingleOrDefault(c => c.Id == cityId);
+
+    if (city == null)
+    {
+        return Results.NotFound();
+    }
+
+    return Results.Ok(
+        new CityDTO
+        {
+            Id = city.Id,
+            Name = city.Name,
+            Logs = city.Logs.Select(log => new LogDTO
+            {
+                Id = log.Id,
+                UserId = log.UserId,
+                CityId = log.CityId,
+                LoggedTime = log.LoggedTime,
+                User = log.User != null ? new UserDTO
+                {
+                    Id = log.User.Id,
+                    Name = log.User.Name,
+                    Email = log.User.Email
+                } : null
+            }).ToList()
+        }
+    );
+});
+
+app.MapDelete("/api/logs/{Id}", (TravelLoggerDbContext db, int Id) =>
+{
+    Log log = db.Logs.SingleOrDefault(l => l.Id == Id);
+
+    if (log == null)
+    {
+        return Results.NotFound();
+    }
+
+    db.Logs.Remove(log);
+    db.SaveChanges();
+
+    return Results.NoContent();
+});
 
 app.Run();
