@@ -155,4 +155,35 @@ app.MapGet("/api/users/{userId}/logs", (TravelLoggerDbContext db, int userId) =>
     );
 });
 
+app.MapGet("/api/cities/{cityId}/logs", (TravelLoggerDbContext db, int cityId) =>
+{
+    City city = db.Cities.Include(c => c.Logs).ThenInclude(c => c.User).SingleOrDefault(c => c.Id == cityId);
+
+    if (city == null)
+    {
+        return Results.NotFound();
+    }
+
+    return Results.Ok(
+        new CityDTO
+        {
+            Id = city.Id,
+            Name = city.Name,
+            Logs = city.Logs.Select(log => new LogDTO
+            {
+                Id = log.Id,
+                UserId = log.UserId,
+                CityId = log.CityId,
+                LoggedTime = log.LoggedTime,
+                User = log.User != null ? new UserDTO
+                {
+                    Id = log.User.Id,
+                    Name = log.User.Name,
+                    Email = log.User.Email
+                } : null
+            }).ToList()
+        }
+    );
+});
+
 app.Run();
