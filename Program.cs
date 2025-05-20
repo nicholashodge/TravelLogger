@@ -80,6 +80,48 @@ app.MapPost("/api/logs", (TravelLoggerDbContext db, LogDTO newLogDTO) =>
     }
 });
 
+app.MapPut("/api/logs/{Id}", (TravelLoggerDbContext db, LogDTO newLogDTO, int Id) =>
+{
+    try
+    {
+        Log oldLog = db.Logs.SingleOrDefault(l => l.Id == Id);
 
+        if (oldLog == null)
+        {
+            return Results.NotFound();
+        }
+
+        oldLog.UserId = newLogDTO.UserId;
+        oldLog.CityId = newLogDTO.CityId;
+        oldLog.LoggedTime = newLogDTO.LoggedTime;
+
+        db.SaveChanges();
+
+        Log DTOInfo = db.Logs.Include(l => l.User).Include(l => l.City).SingleOrDefault(l => l.Id == Id);
+
+        return Results.Ok(new LogDTO
+        {
+            Id = DTOInfo.Id,
+            UserId = DTOInfo.UserId,
+            CityId = DTOInfo.CityId,
+            LoggedTime = DTOInfo.LoggedTime,
+            User = DTOInfo.User != null ? new UserDTO
+            {
+                Id = DTOInfo.User.Id,
+                Name = DTOInfo.User.Name,
+                Email = DTOInfo.User.Email
+            } : null,
+            City = DTOInfo.City != null ? new CityDTO
+            {
+                Id = DTOInfo.City.Id,
+                Name = DTOInfo.City.Name,
+            } : null
+        });
+    }
+    catch (DbUpdateException)
+    {
+        return Results.BadRequest("Invalid Data");
+    }
+});
 
 app.Run();
