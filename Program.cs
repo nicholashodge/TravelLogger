@@ -3,6 +3,7 @@ using System.Text.Json.Serialization;
 using Microsoft.AspNetCore.Http.Json;
 using TravelLogger.Models.DTOs;
 using TravelLogger.Models;
+using System.Threading.Tasks.Sources;
 
 //using TravelLogger.Models
 
@@ -223,6 +224,129 @@ app.MapGet("api/cities/{id}",(int id, TravelLoggerDbContext db)=>
         Name = c.Name
     }).Single(c => c.Id == id);
     return Results.Ok(city);
+});
+
+app.MapPost("/api/recommendations", (TravelLoggerDbContext db, RecommendationDTO recommendationDTO) =>
+{
+    try{
+        Recommendation recommendationPost = new Recommendation
+        {
+            Id = recommendationDTO.Id,
+            CityId = recommendationDTO.CityId,
+            UserId = recommendationDTO.UserId,
+            Text = recommendationDTO.Text
+        };
+
+        db.Recommendations.Add(recommendationPost);
+        db.SaveChanges();
+
+        Recommendation rDTO = db.Recommendations.Include(r => r.City).Include(r => r.User).SingleOrDefault(r => r.Id == recommendationDTO.Id);
+
+        return Results.Created($"/api/recommendations/{recommendationDTO.Id}", new RecommendationDTO
+        {
+            Id = rDTO.Id,
+            CityId = rDTO.CityId,
+            UserId = rDTO.UserId,
+            Text = rDTO.Text,
+            City = rDTO.City != null ? new CityDTO
+            {
+                Id = rDTO.City.Id,
+                Name = rDTO.City.Name
+            } : null,
+            User = rDTO.User != null ? new UserDTO
+            {
+                Id = rDTO.User.Id,
+                Name = rDTO.User.Name,
+                Email = rDTO.User.Email
+            } : null
+        });
+
+    } catch (DbUpdateException){
+        return Results.BadRequest("Invalid Data");
+    }
+});
+
+app.MapPut("/api/recommendations/{Id}", (TravelLoggerDbContext db, RecommendationDTO recommendationPut, int Id) =>
+{
+    try{
+
+        Recommendation outdatedRecommendation = db.Recommendations.SingleOrDefault(r => r.Id == Id);
+        if(outdatedRecommendation == null){
+            return Results.NotFound();
+        }
+
+        //update the current recommendation with the new recommendations info
+        outdatedRecommendation.CityId = recommendationPut.CityId;
+        outdatedRecommendation.Text = recommendationPut.Text;
+        db.SaveChanges();
+
+        Recommendation rDTO = db.Recommendations.Include(r => r.City).Include(r => r.User).SingleOrDefault(r => r.Id == Id);
+
+        return Results.Ok(new RecommendationDTO
+        {
+            Id = rDTO.Id,
+            CityId = rDTO.CityId,
+            Text = rDTO.Text,
+            City = rDTO.City != null ? new CityDTO {
+                Id = rDTO.City.Id,
+                Name = rDTO.City.Name
+            } : null,
+            User = rDTO.User != null ? new UserDTO {
+                Id = rDTO.User.Id,
+                Name = rDTO.User.Name,
+                Email = rDTO.User.Email
+            } : null
+        });
+
+    } catch (DbUpdateException)
+    {
+        return Results.BadRequest("Invalid Data");
+    }
+});
+
+app.MapDelete("/api/recommendations/{Id}", (TravelLoggerDbContext db, int Id) =>
+{
+    Recommendation rec = db.Recommendations.SingleOrDefault(r => r.Id == Id);
+
+    if(rec == null){
+        return Results.NotFound();
+    }
+
+    db.Recommendations.Remove(rec);
+    db.SaveChanges();
+
+    return Results.NoContent();
+});
+
+app.MapGet("/api/recommendations/{Id}", (TravelLoggerDbContext db, int Id) =>
+{
+
+    try {
+
+    Recommendation rec = db.Recommendations.Include(r => r.City).Include(r => r.User).SingleOrDefault(r => r.Id == Id);
+
+        return Results.Ok(new RecommendationDTO
+        {
+            Id = rec.Id,
+            CityId = rec.CityId,
+            UserId = rec.UserId,
+            Text = rec.Text,
+            City = rec.City != null ? new CityDTO {
+                Id = rec.City.Id,
+                Name = rec.City.Name
+            } : null,
+            User = rec.User != null ? new UserDTO { 
+                Id = rec.User.Id,
+                Name = rec.User.Name,
+                Email = rec.User.Email
+            } : null
+        });
+
+
+    } catch (DbUpdateException)
+    {
+        return Results.BadRequest("Invalid Data");
+    }
 });
 
 app.Run();
