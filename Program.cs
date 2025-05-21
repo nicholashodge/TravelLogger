@@ -551,7 +551,7 @@ app.MapPost("/api/upvotes", (TravelLoggerDbContext db, UpvoteDTO upvoteDTO) =>
         db.Upvotes.Add(upvotePost);
         db.SaveChanges();
 
-        Upvote uDTO = db.Upvotes.Include(u => u.User).Include(uDTO => u.Recommendation).SingleOrDefault(u => u.Id == upvoteDTO.Id);
+        Upvote uDTO = db.Upvotes.Include(u => u.User).Include(u => u.Recommendation).SingleOrDefault(u => u.Id == upvoteDTO.Id);
 
         return Results.Created($"/api/upvotes/{upvoteDTO.Id}", new UpvoteDTO
         {
