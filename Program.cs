@@ -305,7 +305,7 @@ app.MapGet("/api/cities/{cityId}/users", (TravelLoggerDbContext db,int cityId) =
         return Results.NotFound();
     }
 
-    city.Logs = city.Logs.OrderByDescending(l => l.LoggedTime).ToList();
+    city.Logs = city.Logs.OrderByDescending(l => l.LoggedTime).DistinctBy(l => l.User.Email).ToList();
 
     return Results.Ok(new CityDTO
     {
