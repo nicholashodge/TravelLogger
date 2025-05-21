@@ -247,5 +247,33 @@ app.MapPost("/api/users", (TravelLoggerDbContext db, UserDTO newUser) =>
     }
 });
 
+app.MapPut("/api/users/{Id}", (TravelLoggerDbContext db, UserDTO newUser, int Id) =>
+{
+    try
+    {
+        User oldUser = db.Users.SingleOrDefault(u => u.Id == Id);
+
+        if (oldUser == null)
+        {
+            return Results.NotFound();
+        }
+
+        oldUser.Name = newUser.Name;
+        oldUser.Email = newUser.Email;
+
+        db.SaveChanges();
+
+        return Results.Ok(new UserDTO
+        {
+            Id = oldUser.Id,
+            Name = oldUser.Name,
+            Email = oldUser.Email
+        });
+    }
+    catch (DbUpdateException)
+    {
+        return Results.BadRequest();
+    }
+});
 
 app.Run();
