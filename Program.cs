@@ -201,7 +201,7 @@ app.MapDelete("/api/logs/{Id}", (TravelLoggerDbContext db, int Id) =>
     return Results.NoContent();
 });
 
-app.MapGet("/api/cities",(TravelLoggerDbContext db) =>
+app.MapGet("/api/cities", (TravelLoggerDbContext db) =>
 {
     return db.Cities.Select(c => new CityDTO
     {
@@ -210,7 +210,7 @@ app.MapGet("/api/cities",(TravelLoggerDbContext db) =>
     }).ToList();
 });
 
-app.MapGet("api/cities/{id}",(int id, TravelLoggerDbContext db)=>
+app.MapGet("api/cities/{id}", (int id, TravelLoggerDbContext db) =>
 {
     bool exists = db.Cities.Any(c => c.Id == id);
     if (!exists)
@@ -224,5 +224,28 @@ app.MapGet("api/cities/{id}",(int id, TravelLoggerDbContext db)=>
     }).Single(c => c.Id == id);
     return Results.Ok(city);
 });
+
+app.MapPost("/api/users", (TravelLoggerDbContext db, UserDTO newUser) =>
+{
+    try
+    {
+        db.Users.Add(new User { Email = newUser.Email, Name = newUser.Name });
+        db.SaveChanges();
+
+        var createdUser = db.Users.SingleOrDefault(u => u.Email == newUser.Email && u.Name == newUser.Name);
+
+        return Results.Created($"/api/users/{createdUser.Id}", new UserDTO
+        {
+            Id = createdUser.Id,
+            Name = createdUser.Name,
+            Email = createdUser.Email
+        });
+    }
+    catch (DbUpdateException)
+    {
+        return Results.BadRequest("Invalid Data");
+    }
+});
+
 
 app.Run();
