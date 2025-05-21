@@ -57,13 +57,13 @@ public class TravelLoggerDbContext : DbContext
 
         modelBuilder.Entity<Recommendation>().HasData(new Recommendation[]
             {
-            new Recommendation { Id = 1, CityId = 1, Text = "Visit Buckingham Palace" },
-            new Recommendation { Id = 2, CityId = 2, Text = "See the Eiffel Tower" },
-            new Recommendation { Id = 3, CityId = 3, Text = "Explore the Shibuya Crossing" },
-            new Recommendation { Id = 4, CityId = 4, Text = "Walk through Central Park" },
-            new Recommendation { Id = 5, CityId = 5, Text = "Climb the Sydney Harbour Bridge" },
-            new Recommendation { Id = 6, CityId = 6, Text = "Visit the Colosseum" },
-            new Recommendation { Id = 7, CityId = 7, Text = "See the Brandenburg Gate" }
+            new Recommendation { Id = 1, CityId = 1, UserId = 1, Text = "Visit Buckingham Palace" },
+            new Recommendation { Id = 2, CityId = 2, UserId = 2, Text = "See the Eiffel Tower" },
+            new Recommendation { Id = 3, CityId = 3, UserId = 3, Text = "Explore the Shibuya Crossing" },
+            new Recommendation { Id = 4, CityId = 4, UserId = 4, Text = "Walk through Central Park" },
+            new Recommendation { Id = 5, CityId = 5, UserId = 5, Text = "Climb the Sydney Harbour Bridge" },
+            new Recommendation { Id = 6, CityId = 6, UserId = 6, Text = "Visit the Colosseum" },
+            new Recommendation { Id = 7, CityId = 7, UserId = 7, Text = "See the Brandenburg Gate" }
         }
         );
 
