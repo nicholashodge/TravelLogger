@@ -202,7 +202,7 @@ app.MapDelete("/api/logs/{Id}", (TravelLoggerDbContext db, int Id) =>
     return Results.NoContent();
 });
 
-app.MapGet("/api/cities",(TravelLoggerDbContext db) =>
+app.MapGet("/api/cities", (TravelLoggerDbContext db) =>
 {
     return db.Cities.Select(c => new CityDTO
     {
@@ -211,7 +211,7 @@ app.MapGet("/api/cities",(TravelLoggerDbContext db) =>
     }).ToList();
 });
 
-app.MapGet("api/cities/{id}",(int id, TravelLoggerDbContext db)=>
+app.MapGet("api/cities/{id}", (int id, TravelLoggerDbContext db) =>
 {
     bool exists = db.Cities.Any(c => c.Id == id);
     if (!exists)
@@ -341,9 +341,10 @@ app.MapDelete("/api/recommendations/{Id}", (TravelLoggerDbContext db, int Id) =>
 app.MapGet("/api/recommendations/{Id}", (TravelLoggerDbContext db, int Id) =>
 {
 
-    try {
+    try
+    {
 
-    Recommendation rec = db.Recommendations.Include(r => r.City).Include(r => r.User).SingleOrDefault(r => r.Id == Id);
+        Recommendation rec = db.Recommendations.Include(r => r.City).Include(r => r.User).SingleOrDefault(r => r.Id == Id);
 
         return Results.Ok(new RecommendationDTO
         {
@@ -351,11 +352,13 @@ app.MapGet("/api/recommendations/{Id}", (TravelLoggerDbContext db, int Id) =>
             CityId = rec.CityId,
             UserId = rec.UserId,
             Text = rec.Text,
-            City = rec.City != null ? new CityDTO {
+            City = rec.City != null ? new CityDTO
+            {
                 Id = rec.City.Id,
                 Name = rec.City.Name
             } : null,
-            User = rec.User != null ? new UserDTO { 
+            User = rec.User != null ? new UserDTO
+            {
                 Id = rec.User.Id,
                 Name = rec.User.Name,
                 Email = rec.User.Email
@@ -363,10 +366,175 @@ app.MapGet("/api/recommendations/{Id}", (TravelLoggerDbContext db, int Id) =>
         });
 
 
-    } catch (DbUpdateException)
+    }
+    catch (DbUpdateException)
     {
         return Results.BadRequest("Invalid Data");
     }
+});
+
+app.MapPost("/api/users", (TravelLoggerDbContext db, UserDTO newUser) =>
+{
+    try
+    {
+        db.Users.Add(new User { Email = newUser.Email, Name = newUser.Name });
+        db.SaveChanges();
+
+        var createdUser = db.Users.SingleOrDefault(u => u.Email == newUser.Email && u.Name == newUser.Name);
+
+        return Results.Created($"/api/users/{createdUser.Id}", new UserDTO
+        {
+            Id = createdUser.Id,
+            Name = createdUser.Name,
+            Email = createdUser.Email
+        });
+    }
+    catch (DbUpdateException)
+    {
+        return Results.BadRequest("Invalid Data");
+    }
+});
+
+app.MapPut("/api/users/{Id}", (TravelLoggerDbContext db, UserDTO newUser, int Id) =>
+{
+    try
+    {
+        User oldUser = db.Users.SingleOrDefault(u => u.Id == Id);
+
+        if (oldUser == null)
+        {
+            return Results.NotFound();
+        }
+
+        oldUser.Name = newUser.Name;
+        oldUser.Email = newUser.Email;
+
+        db.SaveChanges();
+
+        return Results.Ok(new UserDTO
+        {
+            Id = oldUser.Id,
+            Name = oldUser.Name,
+            Email = oldUser.Email
+        });
+    }
+    catch (DbUpdateException)
+    {
+        return Results.BadRequest();
+    }
+});
+
+app.MapGet("/api/cities/{cityId}/users", (TravelLoggerDbContext db, int cityId) =>
+{
+    City city = db.Cities.Include(c => c.Logs).ThenInclude(c => c.User).SingleOrDefault(c => c.Id == cityId);
+
+    if (city == null)
+    {
+        return Results.NotFound();
+    }
+
+    city.Logs = city.Logs.OrderByDescending(l => l.LoggedTime).DistinctBy(l => l.User.Email).ToList();
+
+    return Results.Ok(new CityDTO
+    {
+        Id = city.Id,
+        Name = city.Name,
+        Logs = city.Logs.Select(log => new LogDTO
+        {
+            Id = log.Id,
+            UserId = log.UserId,
+            CityId = log.CityId,
+            LoggedTime = log.LoggedTime,
+            User = log.User != null ? new UserDTO
+            {
+                Id = log.User.Id,
+                Name = log.User.Name,
+                Email = log.User.Email
+            } : null
+        }).ToList()
+    });
+});
+
+app.MapGet("/api/users/{Id}", (TravelLoggerDbContext db, int Id) =>
+{
+    User user = db.Users.Include(u => u.Logs).ThenInclude(u => u.City).Include(u => u.Recommendations).ThenInclude(u => u.City).SingleOrDefault(u => u.Id == Id);
+
+    if (user == null)
+    {
+        return Results.NotFound();
+    }
+
+    return Results.Ok(new UserDTO
+    {
+        Id = user.Id,
+        Name = user.Name,
+        Email = user.Email,
+        Logs = user.Logs.Select(log => new LogDTO
+        {
+            Id = log.Id,
+            UserId = log.UserId,
+            CityId = log.CityId,
+            LoggedTime = log.LoggedTime,
+            City = log.City != null ? new CityDTO
+            {
+                Id = log.City.Id,
+                Name = log.City.Name
+            } : null
+        }).ToList(),
+        Recommendations = user.Recommendations.Select(rec => new RecommendationDTO
+        {
+            Id = rec.Id,
+            CityId = rec.CityId,
+            UserId = rec.UserId,
+            Text = rec.Text,
+            City = rec.City != null ? new CityDTO
+            {
+                Id = rec.City.Id,
+                Name = rec.City.Name
+            } : null
+        }).ToList()
+    });
+});
+
+app.MapGet("/api/users/signin/{Email}", (TravelLoggerDbContext db, string Email) =>
+{
+    User user = db.Users.Include(u => u.Logs).ThenInclude(u => u.City).Include(u => u.Recommendations).ThenInclude(u => u.City).SingleOrDefault(u => u.Email == Email);
+
+    if (user == null)
+    {
+        return Results.NotFound();
+    }
+
+    return Results.Ok(new UserDTO
+    {
+        Id = user.Id,
+        Name = user.Name,
+        Email = user.Email,
+        Logs = user.Logs.Select(log => new LogDTO
+        {
+            Id = log.Id,
+            UserId = log.UserId,
+            CityId = log.CityId,
+            LoggedTime = log.LoggedTime,
+            City = log.City != null ? new CityDTO
+            {
+                Id = log.City.Id,
+                Name = log.City.Name
+            } : null
+        }).ToList(),
+        Recommendations = user.Recommendations.Select(rec => new RecommendationDTO
+        {
+            Id = rec.Id,
+            CityId = rec.CityId,
+            UserId = rec.UserId,
+            Text = rec.Text,
+            City = rec.City != null ? new CityDTO
+            {
+                Id = rec.City.Id,
+                Name = rec.City.Name
+            } : null
+        }).ToList()
+    });
 });
 
 app.Run();

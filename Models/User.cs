@@ -7,4 +7,5 @@ public class User
     [Required] public string Email { get; set; }
     [Required] public string Name { get; set; }
     public List<Log>? Logs { get; set; }
+    public List<Recommendation>? Recommendations { get; set; }
 }

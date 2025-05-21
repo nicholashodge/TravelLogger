@@ -8,4 +8,5 @@ public class UserDTO
     public string Email { get; set; }
     public string Name { get; set; }
     public List<LogDTO>? Logs { get; set; }
+    public List<RecommendationDTO>? Recommendations { get; set; }
 }
