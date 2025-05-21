@@ -369,4 +369,59 @@ app.MapGet("/api/recommendations/{Id}", (TravelLoggerDbContext db, int Id) =>
     }
 });
 
+app.MapPost("/api/upvotes", (TravelLoggerDbContext db, UpvoteDTO upvoteDTO) =>
+{
+    try {
+
+        Upvote upvotePost = new Upvote
+        {
+            Id = upvoteDTO.Id,
+            UserId = upvoteDTO.UserId,
+            RecommendationId = upvoteDTO.RecommendationId
+        };
+
+        db.Upvotes.Add(upvotePost);
+        db.SaveChanges();
+
+        Upvote uDTO = db.Upvotes.Include(u => u.User).Include(uDTO => u.Recommendation).SingleOrDefault(u => u.Id == upvoteDTO.Id);
+
+        return Results.Created($"/api/upvotes/{upvoteDTO.Id}", new UpvoteDTO
+        {
+            Id = uDTO.Id,
+            UserId = uDTO.UserId,
+            RecommendationId = uDTO.RecommendationId,
+            User = uDTO.User != null ? new UserDTO
+            {
+                Id = uDTO.User.Id,
+                Name = uDTO.User.Name,
+                Email = uDTO.User.Email
+            } : null,
+            Recommendation = uDTO.Recommendation != null ? new RecommendationDTO
+            {
+                Id = uDTO.Recommendation.Id,
+                CityId = uDTO.Recommendation.CityId,
+                UserId = uDTO.Recommendation.UserId,
+                Text = uDTO.Recommendation.Text
+            } : null
+        });
+
+    } catch (DbUpdateException){
+        return Results.BadRequest("Invalid Data");
+    }
+});
+
+app.MapDelete("/api/upvotes/{Id}", (TravelLoggerDbContext db, int Id) =>
+{
+    Upvote upvote = db.Upvotes.SingleOrDefault(u => u.Id == Id);
+    if(upvote == null){
+        return Results.NotFound();
+    }
+
+    db.Upvotes.Remove(upvote);
+    db.SaveChanges();
+
+    return Results.NoContent();
+
+});
+
 app.Run();
