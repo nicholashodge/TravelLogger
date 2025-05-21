@@ -581,7 +581,8 @@ app.MapPost("/api/upvotes", (TravelLoggerDbContext db, UpvoteDTO upvoteDTO) =>
 app.MapDelete("/api/upvotes/{Id}", (TravelLoggerDbContext db, int Id) =>
 {
     Upvote upvote = db.Upvotes.SingleOrDefault(u => u.Id == Id);
-    if(upvote == null){
+    if (upvote == null)
+    {
         return Results.NotFound();
     }
 
@@ -592,4 +593,32 @@ app.MapDelete("/api/upvotes/{Id}", (TravelLoggerDbContext db, int Id) =>
 
 });
 
+app.MapGet("/api/cities/{cityId}/recommendations", (TravelLoggerDbContext db, int cityId) =>
+{
+    City city = db.Cities.Include(c => c.Recommendation).ThenInclude(c => c.User).SingleOrDefault(c => c.Id == cityId);
+
+    if (city == null)
+    {
+        return Results.NotFound();
+    }
+
+    return Results.Ok(
+        new CityDTO
+        {
+            Id = city.Id,
+            Name = city.Name,
+            Recommendation = new RecommendationDTO
+            {
+                Id = city.Recommendation.Id,
+                CityId = city.Recommendation.CityId,
+                UserId = city.Recommendation.UserId,
+                City = new CityDTO
+                {
+                    Name = city.Recommendation.City.Name
+                },
+                Text = city.Recommendation.Text
+            }
+        }
+    );
+});
 app.Run();
