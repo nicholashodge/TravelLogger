@@ -424,7 +424,7 @@ app.MapPut("/api/users/{Id}", (TravelLoggerDbContext db, UserDTO newUser, int Id
     }
 });
 
-app.MapGet("/api/cities/{cityId}/users", (TravelLoggerDbContext db,int cityId) =>
+app.MapGet("/api/cities/{cityId}/users", (TravelLoggerDbContext db, int cityId) =>
 {
     City city = db.Cities.Include(c => c.Logs).ThenInclude(c => c.User).SingleOrDefault(c => c.Id == cityId);
 
@@ -454,5 +454,48 @@ app.MapGet("/api/cities/{cityId}/users", (TravelLoggerDbContext db,int cityId) =
         }).ToList()
     });
 });
+
+app.MapGet("/api/users/{Id}", (TravelLoggerDbContext db, int Id) =>
+{
+    User user = db.Users.Include(u => u.Logs).ThenInclude(u => u.City).Include(u => u.Recommendations).ThenInclude(u => u.City).SingleOrDefault(u => u.Id == Id);
+
+    if (user == null)
+    {
+        return Results.NotFound();
+    }
+
+    return Results.Ok(new UserDTO
+    {
+        Id = user.Id,
+        Name = user.Name,
+        Email = user.Email,
+        Logs = user.Logs.Select(log => new LogDTO
+        {
+            Id = log.Id,
+            UserId = log.UserId,
+            CityId = log.CityId,
+            LoggedTime = log.LoggedTime,
+            City = log.City != null ? new CityDTO
+            {
+                Id = log.City.Id,
+                Name = log.City.Name
+            } : null
+        }).ToList(),
+        Recommendations = user.Recommendations.Select(rec => new RecommendationDTO
+        {
+            Id = rec.Id,
+            CityId = rec.CityId,
+            UserId = rec.UserId,
+            Text = rec.Text,
+            City = rec.City != null ? new CityDTO
+            {
+                Id = rec.City.Id,
+                Name = rec.City.Name
+            } : null
+        }).ToList()
+    });
+});
+
+
 
 app.Run();
