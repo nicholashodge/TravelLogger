@@ -218,10 +218,30 @@ app.MapGet("api/cities/{id}",(int id, TravelLoggerDbContext db)=>
     {
         return Results.NotFound();
     }
-    var city = db.Cities.Select(c => new CityDTO
+    var city = db.Cities.Include(c=> c.Recommendation).Include(c=> c.Logs).ThenInclude(l=> l.User).Select(c => new CityDTO
     {
         Id = c.Id,
-        Name = c.Name
+        Name = c.Name,
+        Recommendation = new RecommendationDTO
+        {
+            Id = c.Recommendation.Id,
+            CityId = c.Recommendation.CityId,
+            Text = c.Recommendation.Text
+        },
+        Logs = c.Logs.Select(log=> new LogDTO
+        {
+            Id = log.Id,
+            UserId = log.UserId,
+            CityId = log.CityId,
+            LoggedTime = log.LoggedTime,
+            User = log.User != null ? new UserDTO
+            {
+                Id = log.User.Id,
+                Name = log.User.Name,
+                Email = log.User.Email
+            } : null
+        }).ToList()
+       
     }).Single(c => c.Id == id);
     return Results.Ok(city);
 });
